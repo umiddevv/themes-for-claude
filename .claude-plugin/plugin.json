@@ -1,10 +1,10 @@
 {
   "name": "themes-for-claude",
   "version": "1.2.0",
-  "description": "Themes you can switch with /look, a widget-style Pomodoro timer with a focus line and daily stats, and a token usage pane for Claude Code",
+  "description": "Themes you can switch with /look, a widget-style Pomodoro timer with tags and daily stats, and a token usage pane for Claude Code",
   "author": { "name": "umiddevv" },
   "license": "MIT",
-  "keywords": ["theme", "pomodoro", "focus", "stats", "tokens", "mod"],
+  "keywords": ["theme", "pomodoro", "tags", "stats", "tokens", "mod"],
   "types": "./types/index.d.ts",
   "userConfig": {
     "theme": {

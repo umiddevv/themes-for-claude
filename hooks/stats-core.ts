@@ -1,10 +1,10 @@
-import type { Focus, Stats } from '../types'
+import type { Stats, Tags } from '../types'
 
-// Pure logic for the focus line and the daily stats.
+// Pure logic for session tags and the daily stats.
 
-export const NO_FOCUS: Focus = { text: '', pomodoros: 0 }
-export const FOCUS_SHAPE = 'focus-1'
-export const FOCUS_STORE_KEY = 'pomodoro-focus'
+export const DEFAULT_TAGS: Tags = { tags: ['work', 'study', 'code', 'read'] }
+export const TAGS_SHAPE = 'tags-1'
+export const TAGS_STORE_KEY = 'pomodoro-tags'
 
 export const NO_STATS: Stats = { days: {} }
 export const STATS_SHAPE = 'stats-1'
@@ -12,35 +12,69 @@ export const STATS_STORE_KEY = 'pomodoro-stats'
 export const SOUND_STORE_KEY = 'pomodoro-sound'
 
 const KEEP_DAYS = 30
-const MAX_TEXT = 120
+const MAX_TAGS = 8
 
-/** Sets the focus line. Editing it keeps its 🍅 count; new work starts at zero. */
-export function setFocus(f: Focus, text: string, isEdit = false): Focus {
-  const clean = text.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT)
-
-  if (clean === '') return f
-
-  return { text: clean, pomodoros: isEdit ? f.pomodoros : 0 }
+/** A tag as typed, made plain: lowercase letters, digits and dashes, 16 at most; '' when nothing is left. */
+export function cleanTag(text: string): string {
+  return text
+    .trim()
+    .replace(/^#/, '')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{L}\p{N}-]/gu, '')
+    .slice(0, 16)
 }
 
-export function creditFocus(f: Focus): Focus {
-  return f.text === '' ? f : { ...f, pomodoros: f.pomodoros + 1 }
+/** Chooses a tag, adding it when it is new; choosing the chosen one clears the choice. */
+export function chooseTag(t: Tags, text: string): Tags {
+  const tag = cleanTag(text)
+
+  if (tag === '') return t
+  if (t.current === tag) return { tags: t.tags }
+  const tags = t.tags.includes(tag) ? t.tags : [...t.tags, tag].slice(-MAX_TAGS)
+
+  return { tags, current: tag }
 }
 
-export function parseFocus(value: unknown): Focus | undefined {
-  if (typeof value !== 'object' || value === null) return undefined
-  const v = value as Partial<Focus>
+/** Adds a tag without choosing it. */
+export function addTag(t: Tags, text: string): Tags {
+  const tag = cleanTag(text)
 
-  return typeof v.text === 'string' && typeof v.pomodoros === 'number' ? { text: v.text, pomodoros: v.pomodoros } : undefined
+  return tag === '' || t.tags.includes(tag) ? t : { ...t, tags: [...t.tags, tag].slice(-MAX_TAGS) }
 }
 
-/** Adds one finished focus session of `minutes` to `day`, keeping the last 30 days. */
-export function addSession(s: Stats, day: string, minutes: number): Stats {
+export function removeTag(t: Tags, text: string): Tags {
+  const tag = cleanTag(text)
+  const tags = t.tags.filter(x => x !== tag)
+
+  return t.current === tag ? { tags } : { ...t, tags }
+}
+
+export function parseTags(value: unknown): Tags | undefined {
+  if (typeof value !== 'object' || value === null || !Array.isArray((value as Tags).tags)) return undefined
+  const v = value as { tags: unknown[]; current?: unknown }
+  const tags = [...new Set(v.tags.filter((x): x is string => typeof x === 'string').map(cleanTag).filter(x => x !== ''))].slice(0, MAX_TAGS)
+  const current = typeof v.current === 'string' && tags.includes(v.current) ? v.current : undefined
+
+  return current === undefined ? { tags } : { tags, current }
+}
+
+/** Adds one finished focus session of `minutes` (under `tag`, if any) to `day`, keeping the last 30 days. */
+export function addSession(s: Stats, day: string, minutes: number, tag?: string): Stats {
   const today = s.days[day] ?? { minutes: 0, sessions: 0 }
-  const days = { ...s.days, [day]: { minutes: today.minutes + minutes, sessions: today.sessions + 1 } }
+  const byTag = tag === undefined ? today.byTag : { ...today.byTag, [tag]: (today.byTag?.[tag] ?? 0) + minutes }
+  const entry = { minutes: today.minutes + minutes, sessions: today.sessions + 1, ...(byTag === undefined ? {} : { byTag }) }
+  const days = { ...s.days, [day]: entry }
   const keep = Object.keys(days).sort().slice(-KEEP_DAYS)
 
   return { days: Object.fromEntries(keep.map(k => [k, days[k] ?? { minutes: 0, sessions: 0 }])) }
+}
+
+/** Today's minutes per tag, largest first. */
+export function tagBreakdown(s: Stats, day: string): { tag: string; minutes: number }[] {
+  return Object.entries(s.days[day]?.byTag ?? {})
+    .map(([tag, minutes]) => ({ tag, minutes }))
+    .sort((a, b) => b.minutes - a.minutes)
 }
 
 export function parseStats(value: unknown): Stats | undefined {
@@ -51,7 +85,12 @@ export function parseStats(value: unknown): Stats | undefined {
 
   for (const [k, v] of Object.entries((value as Stats).days)) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof v?.minutes === 'number' && typeof v?.sessions === 'number') {
-      days[k] = { minutes: v.minutes, sessions: v.sessions }
+      const byTag = Object.fromEntries(
+        Object.entries(typeof v.byTag === 'object' && v.byTag !== null ? v.byTag : {}).filter(
+          (e): e is [string, number] => typeof e[1] === 'number',
+        ),
+      )
+      days[k] = { minutes: v.minutes, sessions: v.sessions, ...(Object.keys(byTag).length > 0 ? { byTag } : {}) }
     }
   }
 

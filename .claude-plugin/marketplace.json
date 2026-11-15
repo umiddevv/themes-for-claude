@@ -5,7 +5,7 @@
     {
       "name": "themes-for-claude",
       "source": "./",
-      "description": "Themes you can switch with /look, a Pomodoro timer with focus stats, and a token usage pane"
+      "description": "Themes you can switch with /look, a Pomodoro timer with tags and stats, and a token usage pane"
     }
   ]
 }

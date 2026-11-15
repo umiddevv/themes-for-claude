@@ -2,7 +2,7 @@ import type { Phase, Pomo } from '../types'
 import { SET, durationMs, mmss, remaining } from './pomo-core'
 import { CLASSIC } from './pomo-theme'
 import type { PomoMode, PomoPalette } from './pomo-theme'
-import { escapeXml, shorten } from './tasks-core'
+import { escapeXml, shorten } from './text'
 
 // The widget-style Pomodoro card: a rounded square, a gradient ring of the
 // time left, an emoji, the time and a label. Pure SVG + CSS, light and dark.

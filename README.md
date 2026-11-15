@@ -9,10 +9,11 @@ desk tools beside the chat:
 - **A Pomodoro timer** in a side pane, in the colors of your theme: a widget card
   with a ring, one big Start / Pause, skip, reset, length presets, a chime you
   can mute and a countdown in the status line.
-- **One focus line**: "What are you working on?" It shows on the timer card and
-  collects a 🍅 for every focus session you finish.
-- **Today's stats**: focus time and sessions today, and a bar for each day of
-  the week.
+- **Tags** for your focus sessions: tap `#work`, `#study`, `#code`, `#read` or
+  your own. The tag shows on the timer card and each finished session counts
+  toward it.
+- **Today's stats**: focus time and sessions today, time per tag, and a bar for
+  each day of the week.
 - **A token usage pane**: context window, tokens in and out, cost and rate limits.
 
 ## Install
@@ -43,7 +44,8 @@ then **Add plugin**. New sessions start with it.
 | `/look forest` | Switches to a theme (by id or name) and remembers it |
 | `/look next` | Goes to the next theme in the list |
 | `/pomodoro` | Opens the Pomodoro pane |
-| `/pomodoro focus Write the report` | Sets what you are working on |
+| `/pomodoro tag design` | Tags your sessions `#design` (creates the tag if it's new) |
+| `/pomodoro tag remove design` | Deletes a tag |
 | `/pomodoro 50 10 20` | Sets focus, short break and long break minutes |
 | `/pomodoro sound off` | Mutes the chime (`sound on` brings it back) |
 | `/pomodoro style illustrated` | Switches the card to the illustrated style (`style widget` goes back) |
@@ -51,9 +53,9 @@ then **Add plugin**. New sessions start with it.
 
 In the Pomodoro pane: **▶ Start / ⏸ Pause** (`s`), **⏭** skips to the next
 phase (`n`), **↺** resets (`r`), **25/5** cycles 25/5, 50/10 and 15/3 minutes
-(`p`), **🔔** mutes the chime (`m`). Type what you are working on in the field
-under the buttons and press Enter; **✎** edits it (its 🍅 count stays) and **✓**
-marks it done. Your focus line, stats and sound choice are kept between sessions.
+(`p`), **🔔** mutes the chime (`m`). Under the buttons, tap a tag to tag your
+sessions with it (tap it again to clear it); **✎** lets you add tags (up to 8)
+and remove them. Your tags, stats and sound choice are kept between sessions.
 
 ### Settings
 

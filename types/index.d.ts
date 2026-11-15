@@ -29,28 +29,15 @@ export type Pomo = {
   minutes: { focus: number; short: number; long: number }
 }
 
-/** A task list from 1.0 and 1.1, read once to carry the current task over. */
-export type Task = {
-  id: string
-  text: string
-  isDone: boolean
-  pomodoros: number
-}
-
-export type TaskList = {
-  items: Task[]
-  activeId?: string
-}
-
-/** What you are working on: one line, and the focus sessions it has had. */
-export type Focus = {
-  text: string
-  pomodoros: number
+/** The tags you can tag a focus session with, and the one chosen now. */
+export type Tags = {
+  tags: string[]
+  current?: string
 }
 
 /** Focus minutes and sessions per local day (YYYY-MM-DD), the last 30 days kept. */
 export type Stats = {
-  days: Record<string, { minutes: number; sessions: number }>
+  days: Record<string, { minutes: number; sessions: number; byTag?: Record<string, number> }>
 }
 
 declare module 'claude-code' {
@@ -58,10 +45,10 @@ declare module 'claude-code' {
     'themes-for-claude': {
       totals: Shaped<Totals>
       pomodoro: Shaped<Pomo>
-      /** What you are working on, mirrored to $.store so it outlives the session. */
-      pomodoroFocus: Shaped<Focus>
-      /** Shown as a field while you change the focus line. */
-      focusEditing: boolean
+      /** The tags and the chosen one, mirrored to $.store so they outlive the session. */
+      pomodoroTags: Shaped<Tags>
+      /** Whether the tag row shows the add field and remove buttons. */
+      tagsEditing: boolean
       /** Daily focus stats, mirrored to $.store. */
       pomodoroStats: Shaped<Stats>
       /** Whether a phase ending plays the chime, mirrored to $.store. */
