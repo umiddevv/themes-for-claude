@@ -6,8 +6,9 @@
 
 import aurora from './aurora'
 import forest from './forest'
+import glyphSea from './glyph-sea'
 import paper from './paper'
 import sandstone from './sandstone'
 import type { Theme } from './types'
 
-export const THEMES: Theme[] = [aurora, paper, forest, sandstone]
+export const THEMES: Theme[] = [aurora, paper, forest, sandstone, glyphSea]

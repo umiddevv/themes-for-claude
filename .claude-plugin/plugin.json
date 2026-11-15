@@ -1,6 +1,6 @@
 {
   "name": "themes-for-claude",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Themes you can switch with /look, a widget-style Pomodoro timer with tags and daily stats, and a token usage pane for Claude Code",
   "author": { "name": "umiddevv" },
   "license": "MIT",
@@ -12,7 +12,7 @@
       "title": "Theme",
       "description": "The theme to use. /look switches it too.",
       "default": "aurora",
-      "options": ["aurora", "paper", "forest", "sandstone"]
+      "options": ["aurora", "paper", "forest", "sandstone", "glyph-sea"]
     },
     "openPomodoro": {
       "type": "boolean",

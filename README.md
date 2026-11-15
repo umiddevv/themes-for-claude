@@ -3,9 +3,10 @@
 A mod for Claude Code that restyles the desktop and mobile apps and adds a few
 desk tools beside the chat:
 
-- **Themes you switch in one command.** Four come with it: Aurora night (with an
-  animated aurora behind the chat), Paper, Forest moss and Sandstone desert.
-  Each one follows your Mac's light and dark mode.
+- **Themes you switch in one command.** Five come with it: Aurora night (with an
+  animated aurora behind the chat), Glyph sea (a whale, a manta, a jellyfish and
+  fish made of code characters swimming behind the chat), Paper, Forest moss and
+  Sandstone desert. Each one follows your Mac's light and dark mode.
 - **A Pomodoro timer** in a side pane, in the colors of your theme: a widget card
   with a ring, one big Start / Pause, skip, reset, length presets, a chime you
   can mute and a countdown in the status line.
@@ -112,7 +113,7 @@ Tips that keep a theme readable:
   `pomodoro: { focus: '#e8392b', short: '#3b82f6', long: '#8b5cf6' }` (any of the three).
 - **Background** (optional): `{ color }`, `{ gradient: [...], angle }` or a
   moving `{ scene }`. A color can be hex or a name like `surface-0` that follows
-  light and dark. See [`themes/scenes/aurora.ts`](themes/scenes/aurora.ts) for a
+  light and dark. See [`themes/scenes/aurora.ts`](themes/scenes/aurora.ts) and [`themes/scenes/glyph-sea.ts`](themes/scenes/glyph-sea.ts) for a
   moving scene: plain SVG with CSS animation, no scripts.
 - Leave out `light` or `dark` to make a dark-only or light-only theme.
 
