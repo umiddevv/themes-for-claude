@@ -131,8 +131,8 @@ function bubbles(count: number): string {
   for (let i = 0; i < count; i++) {
     const x = (rand() * W).toFixed(0)
     const y = (H * 0.35 + rand() * H * 0.75).toFixed(0)
-    const dur = (22 + rand() * 30).toFixed(1)
-    const delay = (rand() * 40).toFixed(1)
+    const dur = (9 + rand() * 9).toFixed(1)
+    const delay = (rand() * 18).toFixed(1)
     out += `<text x="${x}" y="${y}" class="bub" style="animation-duration:${dur}s;animation-delay:-${delay}s">${esc(pick("()o.:~'`^"))}</text>`
   }
 
@@ -149,26 +149,29 @@ const scene = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" p
 <style>
 svg{--sea-top:#070b10;--sea-low:#0b131b;--ink:#9fd3cf;--ink2:#6fa8b5;--spark:#ff6b5e}
 @media (prefers-color-scheme: light){svg{--sea-top:#eef3f4;--sea-low:#e2ebee;--ink:#2d6f78;--ink2:#4f8792;--spark:#d9473c}}
-text{font:500 12px 'SF Mono',Menlo,Monaco,'Courier New',monospace;white-space:pre;fill:var(--ink)}
+text{font:500 12px 'SF Mono',Menlo,Monaco,'Courier New',monospace;white-space:pre;fill:var(--ink);text-rendering:geometricPrecision}
 .spark{fill:var(--spark)}
-.creature{opacity:.62}
-.far{opacity:.32}
-.fish{fill:var(--ink2);animation:wiggle 3.6s ease-in-out infinite alternate}
+.creature{opacity:.7}
+.far{opacity:.4}
+.fish{fill:var(--ink2);animation:wiggle 1.6s ease-in-out infinite alternate}
 .bub{fill:var(--ink2);opacity:0;animation:rise linear infinite}
-.swimL{animation:swimL 150s linear infinite}
-.swimR{animation:swimR 190s linear infinite}
-.swimR2{animation:swimR 120s linear infinite}
-.bob{animation:bob 9s ease-in-out infinite alternate}
-.glide{animation:bob 13s ease-in-out infinite alternate}
-.drift{animation:drift 70s ease-in-out infinite alternate}
-.pulse{animation:pulse 4.5s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 0}
+/* Moving groups get their own layer, so they glide instead of stepping a pixel at a time. */
+.swimL,.swimR,.swimR2,.bob,.glide,.drift,.pulse,.bub,.fish{will-change:transform}
+/* Negative delays start every creature already on screen, partway through its swim. */
+.swimL{animation:swimL 75s linear infinite;animation-delay:-30s}
+.swimR{animation:swimR 100s linear infinite;animation-delay:-45s}
+.swimR2{animation:swimR 50s linear infinite;animation-delay:-22s}
+.bob{animation:bob 6s ease-in-out infinite alternate}
+.glide{animation:bob 8s ease-in-out infinite alternate}
+.drift{animation:drift 24s ease-in-out infinite alternate}
+.pulse{animation:pulse 2.8s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 0}
 @keyframes swimL{from{transform:translateX(${W + 80}px)}to{transform:translateX(-620px)}}
 @keyframes swimR{from{transform:translateX(-520px)}to{transform:translateX(${W + 80}px)}}
-@keyframes bob{from{transform:translateY(-14px)}to{transform:translateY(16px)}}
-@keyframes drift{from{transform:translate(0,40px)}to{transform:translate(60px,-120px)}}
-@keyframes pulse{from{transform:scaleY(.94)}to{transform:scaleY(1.05)}}
-@keyframes wiggle{from{transform:translateY(-3px)}to{transform:translateY(3px)}}
-@keyframes rise{0%{opacity:0;transform:translateY(0)}12%{opacity:.55}80%{opacity:.35}100%{opacity:0;transform:translateY(-520px)}}
+@keyframes bob{from{transform:translateY(-18px)}to{transform:translateY(18px)}}
+@keyframes drift{from{transform:translate(0,50px)}to{transform:translate(70px,-140px)}}
+@keyframes pulse{from{transform:scaleY(.9)}to{transform:scaleY(1.08)}}
+@keyframes wiggle{from{transform:translateY(-4px)}to{transform:translateY(4px)}}
+@keyframes rise{0%{opacity:0;transform:translateY(0)}12%{opacity:.65}80%{opacity:.4}100%{opacity:0;transform:translateY(-420px)}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important}.bub{opacity:.3}}
 </style>
 <defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sea-top)"/><stop offset="1" stop-color="var(--sea-low)"/></linearGradient></defs>

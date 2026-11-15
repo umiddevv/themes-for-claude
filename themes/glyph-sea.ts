@@ -32,7 +32,7 @@ const glyphSea: Theme = {
     textMuted: '#8c9ea8',
   },
   // Light frosting, so the creatures stay visible behind the panels.
-  background: { scene, glass: { blur: 10, opacity: 0.72 } },
+  background: { scene, glass: { blur: 4, opacity: 0.55 } },
   // The ring takes the scene's coral spark for focus.
   pomodoro: { focus: '#ff6b5e' },
 }
