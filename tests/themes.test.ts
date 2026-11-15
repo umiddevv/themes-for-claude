@@ -1,7 +1,50 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { CLASSIC, pomoPalette } from '../hooks/pomo-theme'
 import { buildTheme, chooseTheme, findTheme } from '../hooks/themes'
 import { THEMES } from '../themes'
+
+const PANE = {
+  plugin: 'themes-for-claude',
+  component: 'Pane',
+  requestId: 'pomodoro-pane',
+  props: { title: 'Pomodoro', isFocused: false, bodyColumns: 40, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+} as const
+
+describe('Pomodoro colors follow the theme', () => {
+  test('focus, short and long come from accent, success and special, unless the theme names them', async () => {
+    const forest = findTheme('forest')
+    expect(forest).toBeDefined()
+    if (forest === undefined) return
+    const pal = pomoPalette(forest)
+    expect(pal.light.card).toBe(forest.light?.panel)
+    expect(pal.dark.card).toBe(forest.dark?.page)
+    expect(pal.phase.focus).not.toEqual(CLASSIC.phase.focus)
+    expect(pomoPalette(undefined)).toEqual(CLASSIC)
+
+    const named = pomoPalette({ ...forest, pomodoro: { focus: '#e8392b' } })
+    expect(named.phase.focus).not.toEqual(pal.phase.focus)
+    expect(named.phase.short).toEqual(pal.phase.short)
+  })
+})
+
+test('/look redraws the open Pomodoro card in the new colors', async ($, on) => {
+  on('clock.now', () => ({ value: 1_000_000 }))
+  on('store.get', () => ({ value: undefined }))
+  on('store.set', () => ({ value: undefined }))
+  on('theme.set', () => ({ value: { isDrawn: true, requestId: 'theme' } }))
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  const card = async () => String((await ui.find({ type: 'Svg' }))?.props.source ?? '')
+  const hot = (id: string) => pomoPalette(findTheme(id)).phase.focus[0]
+
+  expect(await card()).toContain(hot(THEMES[0]?.id ?? ''))
+
+  await $.command.run({ command: 'look', args: 'sandstone', origin: { kind: 'sdk' }, presentation: { isFullscreen: false, columns: 80 } })
+  expect(await card()).toContain(hot('sandstone'))
+  expect(await card()).not.toContain(hot(THEMES[0]?.id ?? ''))
+  await ui.unmount()
+})
 
 const run = (args: string) => ({
   command: 'look',

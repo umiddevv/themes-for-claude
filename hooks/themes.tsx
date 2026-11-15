@@ -1,3 +1,4 @@
+import { atom, update } from 'claude-code'
 import type { EngineInterface, On, PluginOptions, ThemeBackdrop, ThemeColor, ThemeSetArgs } from 'claude-code'
 
 import { THEMES } from '../themes'
@@ -14,6 +15,9 @@ const DEFAULT = THEMES[0] as Theme
 export type SavedTheme = { id: string; configSeen?: string }
 
 let currentId = DEFAULT.id
+
+// The theme in use, for drawings that follow it (the Pomodoro cards): writing it redraws them.
+const themeAtom = atom({ plugin: 'themes-for-claude', key: 'themeId' } as const, DEFAULT.id)
 
 export function findTheme(id: string): Theme | undefined {
   const want = id.trim().toLowerCase()
@@ -93,6 +97,7 @@ async function applyTheme($: EngineInterface, t: Theme): Promise<string | undefi
 
   const set = await $.theme.set(built.look)
   currentId = t.id
+  await update($, themeAtom, () => t.id)
 
   if (!set.isDrawn) $.ui.log(`${t.name}: ${set.reason}`)
 

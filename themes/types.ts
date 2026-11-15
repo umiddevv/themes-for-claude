@@ -51,4 +51,9 @@ export type Theme = {
   light?: ThemeMode
   dark?: ThemeMode
   background?: ThemeBackground
+  /**
+   * Optional: the Pomodoro ring's color per phase. Left out, focus uses
+   * `accent`, the short break `success` and the long break `special`.
+   */
+  pomodoro?: { focus?: Hex; short?: Hex; long?: Hex }
 }

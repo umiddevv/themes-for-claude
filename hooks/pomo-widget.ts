@@ -1,5 +1,7 @@
 import type { Phase, Pomo } from '../types'
 import { SET, durationMs, mmss, remaining } from './pomo-core'
+import { CLASSIC } from './pomo-theme'
+import type { PomoMode, PomoPalette } from './pomo-theme'
 import { escapeXml, shorten } from './tasks-core'
 
 // The widget-style Pomodoro card: a rounded square, a gradient ring of the
@@ -11,13 +13,10 @@ const R = 116
 
 const ICON: Record<Phase, string> = { focus: '🍅', short: '☕', long: '🌙' }
 const LABEL: Record<Phase, string> = { focus: 'FOCUS', short: 'RELAX', long: 'LONG REST' }
-const GRADIENT: Record<Phase, [string, string]> = {
-  focus: ['#ff8a1f', '#d9302a'],
-  short: ['#47a8ff', '#1f5fd1'],
-  long: ['#b48cff', '#6a45d8'],
-}
+const vars = (m: PomoMode) =>
+  `--card:${m.card};--edge:${m.edge};--track:${m.track};--ink:${m.ink};--soft:${m.soft};--dot:${m.dot}`
 
-export function pomoWidget(p: Pomo, now: number, task?: string): string {
+export function pomoWidget(p: Pomo, now: number, task?: string, palette: PomoPalette = CLASSIC): string {
   const taskLine =
     task === undefined || p.phase !== 'focus'
       ? ''
@@ -27,7 +26,7 @@ export function pomoWidget(p: Pomo, now: number, task?: string): string {
   const left = remaining(p, now)
   const rest = Math.max(0, Math.min(1, left / Math.max(1, total)))
   const circ = 2 * Math.PI * R
-  const [hot, deep] = GRADIENT[p.phase]
+  const [hot, deep] = palette.phase[p.phase]
   // The ring is the time left: it runs clockwise from where the time has got to, round to 12.
   const headA = (1 - rest) * Math.PI * 2
   const headX = C + Math.sin(headA) * R
@@ -39,8 +38,8 @@ export function pomoWidget(p: Pomo, now: number, task?: string): string {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">
 <style>
-svg{--card:#ffffff;--edge:#e6e6ea;--track:#ececf0;--ink:#111114;--soft:#8a8a93;--dot:#c9c9d0}
-@media (prefers-color-scheme: dark){svg{--card:#050506;--edge:#1c1c20;--track:#242428;--ink:#ffffff;--soft:#9a9aa3;--dot:#3a3a40}}
+svg{${vars(palette.light)}}
+@media (prefers-color-scheme: dark){svg{${vars(palette.dark)}}}
 .card{fill:var(--card);stroke:var(--edge);stroke-width:1.5}
 .track{fill:none;stroke:var(--track);stroke-width:16}
 .arc{fill:none;stroke:url(#g);stroke-width:16;stroke-linecap:round}

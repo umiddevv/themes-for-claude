@@ -21,7 +21,10 @@ import {
   reset,
   start,
 } from './pomo-core'
+import { THEMES } from '../themes'
+import { pomoPalette } from './pomo-theme'
 import { pomoWidget } from './pomo-widget'
+import { findTheme } from './themes'
 import {
   NO_TASKS,
   TASKS_SHAPE,
@@ -40,6 +43,7 @@ const pomodoro = atom({ plugin: 'themes-for-claude', key: 'pomodoro' } as const,
 const tickAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroTick' } as const, 0)
 const styleAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroStyle' } as const, 'widget' as 'widget' | 'illustrated')
 const tasksAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroTasks' } as const, NO_TASKS, { shape: TASKS_SHAPE })
+const themeAtom = atom({ plugin: 'themes-for-claude', key: 'themeId' } as const, THEMES[0]?.id ?? '')
 
 export const POMO_PANE = 'pomodoro-pane'
 const TITLE = 'Pomodoro'
@@ -156,6 +160,9 @@ export function registerPomodoro(on: On): void {
     const p = await read($, pomodoro)
     const style = await read($, styleAtom)
     const list = await read($, tasksAtom)
+    // Reading the theme here redraws the pane when /look switches it.
+    const theme = findTheme(await read($, themeAtom))
+    const palette = pomoPalette(theme)
     await read($, tickAtom)
     const now = await $.clock.now()
     const left = remaining(p, now)
@@ -242,7 +249,7 @@ export function registerPomodoro(on: On): void {
 
       return (
         <Box flexDirection="column" gap={1} alignItems="center">
-          <Svg source={pomoWidget(p, now, current?.text)} alt={alt} />
+          <Svg source={pomoWidget(p, now, current?.text, palette)} alt={alt} />
           <Box flexDirection="row" gap={1} justifyContent="center" alignItems="center">
             <Button key="pomo-preset" label="⚙" plain hotkey="p" dimColor onPress={() => void preset()} />
             <Button key="pomo-toggle" label={p.isRunning ? '⏸ Pause' : '▶ ' + startLabel} hotkey="s" variant="primary" onPress={() => void toggle()} />
@@ -269,7 +276,7 @@ export function registerPomodoro(on: On): void {
     if (Svg !== undefined) {
       return (
         <Box flexDirection="column" gap={1} alignItems="center">
-          <Svg source={pomoArt(p, now)} alt={alt} />
+          <Svg source={pomoArt(p, now, palette)} alt={alt} />
           {buttons}
           <Text dimColor size="caption">
             {footer}

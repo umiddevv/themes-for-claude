@@ -1,6 +1,6 @@
 {
   "name": "themes-for-claude",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Themes you can switch with /look, a widget-style Pomodoro timer with tasks, and a token usage pane for Claude Code",
   "author": { "name": "umiddevv" },
   "license": "MIT",

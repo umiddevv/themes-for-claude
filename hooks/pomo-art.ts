@@ -1,5 +1,7 @@
 import type { Phase, Pomo } from '../types'
 import { SET, durationMs, mmss, remaining } from './pomo-core'
+import { mix } from './pomo-theme'
+import type { PomoMode, PomoPalette } from './pomo-theme'
 
 // The illustrated Pomodoro card: ring dial, big countdown, a handwritten line
 // and a small original illustration per phase. Pure SVG + CSS: no script, no
@@ -125,7 +127,26 @@ function scene(phase: Phase): string {
 </g>`
 }
 
-export function pomoArt(p: Pomo, now: number): string {
+/** The phase's art palette, tinted with the theme's phase color and grays. */
+function themed(base: Palette, hot: string, deep: string, m: PomoMode, isDark: boolean): Palette {
+  const bg = isDark ? mix(m.card, hot, 0.08) : mix('#ffffff', hot, 0.07)
+
+  return {
+    ...base,
+    bg,
+    ink: m.ink,
+    soft: m.soft,
+    deco: mix(bg, hot, 0.3),
+    track: mix(bg, hot, isDark ? 0.18 : 0.16),
+    tick: mix(bg, m.ink, isDark ? 0.2 : 0.16),
+    accent: isDark ? mix(hot, '#ffffff', 0.1) : hot,
+    script: isDark ? mix(hot, '#ffffff', 0.35) : deep,
+    hill1: mix(bg, hot, isDark ? 0.42 : 0.5),
+    hill2: mix(bg, hot, isDark ? 0.25 : 0.28),
+  }
+}
+
+export function pomoArt(p: Pomo, now: number, palette?: PomoPalette): string {
   const total = durationMs(p)
   const left = remaining(p, now)
   const frac = Math.max(0, Math.min(1, (total - left) / Math.max(1, total)))
@@ -133,7 +154,12 @@ export function pomoArt(p: Pomo, now: number): string {
   const tipA = frac * Math.PI * 2
   const tipX = CX + Math.sin(tipA) * R
   const tipY = CY - Math.cos(tipA) * R
-  const pal = PALETTES[p.phase]
+  const own = PALETTES[p.phase]
+  const tint = palette?.phase[p.phase]
+  const pal =
+    palette === undefined || tint === undefined
+      ? own
+      : { light: themed(own.light, tint[0], tint[1], palette.light, false), dark: themed(own.dark, tint[0], tint[1], palette.dark, true) }
   const lines = LINES[p.phase]
   const line = lines[p.completed % lines.length] ?? lines[0] ?? ''
   const session = p.phase === 'focus' ? `  ·  SESSION ${Math.min(p.cycle + 1, SET)} OF ${SET}` : ''

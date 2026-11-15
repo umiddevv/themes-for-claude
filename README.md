@@ -6,7 +6,7 @@ desk tools beside the chat:
 - **Themes you switch in one command.** Four come with it: Aurora night (with an
   animated aurora behind the chat), Paper, Forest moss and Sandstone desert.
   Each one follows your Mac's light and dark mode.
-- **A Pomodoro timer** in a side pane: a widget card with a ring, start / pause,
+- **A Pomodoro timer** in a side pane, in the colors of your theme: a widget card with a ring, start / pause,
   break and focus, three length presets, a chime and a countdown in the status line.
 - **A task list** under the timer. Each finished focus session adds a 🍅 to the
   task you are on, and your tasks are kept between sessions.
@@ -98,6 +98,10 @@ Tips that keep a theme readable:
   message names the pair of colors to fix.
 - **Meaning**: keep `danger` red, `success` green and `warning` amber, tuned to
   the theme.
+- **Pomodoro**: the timer follows the theme. Focus uses `accent`, the short break
+  `success`, the long break `special`, and the card uses the theme's surfaces
+  and text. To pick exact ring colors, add
+  `pomodoro: { focus: '#e8392b', short: '#3b82f6', long: '#8b5cf6' }` (any of the three).
 - **Background** (optional): `{ color }`, `{ gradient: [...], angle }` or a
   moving `{ scene }`. A color can be hex or a name like `surface-0` that follows
   light and dark. See [`themes/scenes/aurora.ts`](themes/scenes/aurora.ts) for a

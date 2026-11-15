@@ -54,6 +54,8 @@ declare module 'claude-code' {
       pomodoroTick: number
       /** Which card the Pomodoro pane draws on desktop and mobile. */
       pomodoroStyle: 'widget' | 'illustrated'
+      /** The id of the theme in use; drawings that follow the theme read it. */
+      themeId: string
     }
   }
 }
