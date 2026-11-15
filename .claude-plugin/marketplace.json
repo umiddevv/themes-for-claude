@@ -1,0 +1,11 @@
+{
+  "name": "themes-for-claude",
+  "owner": { "name": "umiddevv" },
+  "plugins": [
+    {
+      "name": "themes-for-claude",
+      "source": "./",
+      "description": "Themes you can switch with /look, a Pomodoro timer with tasks, and a token usage pane"
+    }
+  ]
+}

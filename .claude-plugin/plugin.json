@@ -1,0 +1,24 @@
+{
+  "name": "themes-for-claude",
+  "version": "1.0.0",
+  "description": "Themes you can switch with /look, a widget-style Pomodoro timer with tasks, and a token usage pane for Claude Code",
+  "author": { "name": "umiddevv" },
+  "license": "MIT",
+  "keywords": ["theme", "pomodoro", "tasks", "tokens", "mod"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "theme": {
+      "type": "string",
+      "title": "Theme",
+      "description": "The theme to use. /look switches it too.",
+      "default": "aurora",
+      "options": ["aurora", "paper", "forest", "sandstone"]
+    },
+    "openPomodoro": {
+      "type": "boolean",
+      "title": "Open the Pomodoro pane at start",
+      "description": "Off: open it yourself with /pomodoro.",
+      "default": true
+    }
+  }
+}
