@@ -1,8 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, Timer } from 'claude-code'
 
-import type { Pomo, TaskList } from '../types'
-import { refreshStatus } from './clock'
+import { THEMES } from '../themes'
+import type { Focus, Pomo, Stats } from '../types'
+import { localDay, refreshStatus } from './clock'
 import { pomoArt } from './pomo-art'
 import {
   INITIAL,
@@ -21,28 +22,36 @@ import {
   reset,
   start,
 } from './pomo-core'
-import { THEMES } from '../themes'
+import { statsCard } from './pomo-stats'
 import { pomoPalette } from './pomo-theme'
 import { pomoWidget } from './pomo-widget'
-import { findTheme } from './themes'
 import {
-  NO_TASKS,
-  TASKS_SHAPE,
-  TASKS_STORE_KEY,
-  activeTask,
-  addTask,
-  clearDone,
-  creditPomodoro,
-  parseStored,
-  pickTask,
-  removeTask,
-  toggleTask,
-} from './tasks-core'
+  FOCUS_SHAPE,
+  FOCUS_STORE_KEY,
+  NO_FOCUS,
+  NO_STATS,
+  SOUND_STORE_KEY,
+  STATS_SHAPE,
+  STATS_STORE_KEY,
+  addSession,
+  creditFocus,
+  formatMinutes,
+  lastWeek,
+  parseFocus,
+  parseStats,
+  setFocus,
+  sparkline,
+} from './stats-core'
+import { TASKS_STORE_KEY, activeTask, parseStored } from './tasks-core'
+import { findTheme } from './themes'
 
 const pomodoro = atom({ plugin: 'themes-for-claude', key: 'pomodoro' } as const, INITIAL, { shape: POMO_SHAPE })
 const tickAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroTick' } as const, 0)
 const styleAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroStyle' } as const, 'widget' as 'widget' | 'illustrated')
-const tasksAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroTasks' } as const, NO_TASKS, { shape: TASKS_SHAPE })
+const focusAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroFocus' } as const, NO_FOCUS, { shape: FOCUS_SHAPE })
+const editingAtom = atom({ plugin: 'themes-for-claude', key: 'focusEditing' } as const, false)
+const statsAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroStats' } as const, NO_STATS, { shape: STATS_SHAPE })
+const soundAtom = atom({ plugin: 'themes-for-claude', key: 'pomodoroSound' } as const, true)
 const themeAtom = atom({ plugin: 'themes-for-claude', key: 'themeId' } as const, THEMES[0]?.id ?? '')
 
 export const POMO_PANE = 'pomodoro-pane'
@@ -50,32 +59,53 @@ const TITLE = 'Pomodoro'
 
 let ticker: Timer | undefined
 
-/** Changes the task list and keeps a copy in $.store, so it outlives the session. */
-async function saveTasks($: EngineInterface, change: (list: TaskList) => TaskList): Promise<void> {
-  await update($, tasksAtom, change)
-  // The session's copy is already changed; a failed save only loses the copy for later sessions.
-  await $.store.set(TASKS_STORE_KEY, await read($, tasksAtom)).catch(() => undefined)
+// ---- Saved values: the session's copy in state, a copy in $.store for later sessions ----
+
+async function saveFocus($: EngineInterface, change: (f: Focus) => Focus): Promise<void> {
+  await update($, focusAtom, change)
+  await $.store.set(FOCUS_STORE_KEY, await read($, focusAtom)).catch(() => undefined)
 }
 
-async function loadTasks($: EngineInterface): Promise<void> {
-  const current = await read($, tasksAtom)
-
-  if (current.items.length > 0) {
-    return
-  }
-  const stored = parseStored(await $.store.get(TASKS_STORE_KEY).catch(() => undefined))
-
-  if (stored !== undefined && stored.items.length > 0) {
-    await update($, tasksAtom, () => stored)
-  }
+async function saveStats($: EngineInterface, change: (s: Stats) => Stats): Promise<void> {
+  await update($, statsAtom, change)
+  await $.store.set(STATS_STORE_KEY, await read($, statsAtom)).catch(() => undefined)
 }
+
+async function saveSound($: EngineInterface, isOn: boolean): Promise<void> {
+  await update($, soundAtom, () => isOn)
+  await $.store.set(SOUND_STORE_KEY, isOn).catch(() => undefined)
+}
+
+async function loadSaved($: EngineInterface): Promise<void> {
+  const get = (key: string) => $.store.get(key).catch(() => undefined)
+
+  if ((await read($, focusAtom)).text === '') {
+    const focus = parseFocus(await get(FOCUS_STORE_KEY))
+    // 1.0 and 1.1 kept a task list: its current task becomes the focus line.
+    const old = focus === undefined ? activeTask(parseStored(await get(TASKS_STORE_KEY)) ?? { items: [] }) : undefined
+    const start = focus ?? (old === undefined ? undefined : { text: old.text, pomodoros: old.pomodoros })
+
+    if (start !== undefined && start.text !== '') await update($, focusAtom, () => start)
+  }
+  const stats = parseStats(await get(STATS_STORE_KEY))
+
+  if (stats !== undefined) await update($, statsAtom, () => stats)
+
+  const sound = await get(SOUND_STORE_KEY)
+
+  if (typeof sound === 'boolean') await update($, soundAtom, () => sound)
+}
+
+// ---- The timer ----
 
 async function finishPhase($: EngineInterface, ended: Pomo): Promise<void> {
   const next = advance(ended, true)
   await update($, pomodoro, () => next)
 
   if (ended.phase === 'focus') {
-    await saveTasks($, creditPomodoro)
+    const day = localDay(await $.clock.now())
+    await saveFocus($, creditFocus)
+    await saveStats($, s => addSession(s, day, ended.minutes.focus))
   }
 
   const text =
@@ -85,7 +115,10 @@ async function finishPhase($: EngineInterface, ended: Pomo): Promise<void> {
 
   $.ui.toast(text)
   void $.ui.notify(text, { title: 'Pomodoro' }).catch(() => undefined)
-  void $.audio.play({ asset: 'sounds/chime.wav' }).catch(() => undefined)
+
+  if (await read($, soundAtom)) {
+    void $.audio.play({ asset: 'sounds/chime.wav' }).catch(() => undefined)
+  }
 }
 
 async function tick($: EngineInterface): Promise<void> {
@@ -105,7 +138,7 @@ async function tick($: EngineInterface): Promise<void> {
 export async function startPomodoro($: EngineInterface): Promise<void> {
   ticker?.cancel()
   ticker = $.clock.every(1000, () => void tick($))
-  await loadTasks($)
+  await loadSaved($)
 }
 
 export async function openPomodoro($: EngineInterface) {
@@ -125,14 +158,19 @@ export function registerPomodoro(on: On): void {
       return { text: `Pomodoro style: ${styleArg}.` }
     }
 
-    const taskArg = /^(?:task|add)\s+(.+)$/is.exec(args)?.[1]
+    const focusArg = /^(?:focus|task|on)\s+(.+)$/is.exec(args)?.[1]
 
-    if (taskArg !== undefined) {
-      const id = `t${(await $.clock.now()).toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
-      await saveTasks($, list => addTask(list, taskArg, id))
+    if (focusArg !== undefined) {
+      await saveFocus($, f => setFocus(f, focusArg))
       await openPomodoro($)
 
-      return { text: `Task added: ${taskArg.trim()}` }
+      return { text: `Working on: ${focusArg.trim()}` }
+    }
+
+    if (lower === 'sound on' || lower === 'sound off') {
+      await saveSound($, lower === 'sound on')
+
+      return { text: `Pomodoro sound ${lower === 'sound on' ? 'on' : 'off'}.` }
     }
 
     if (lower !== '') {
@@ -140,7 +178,7 @@ export function registerPomodoro(on: On): void {
 
       if (minutes === undefined) {
         return {
-          text: 'Usage: /pomodoro [focus] [short] [long] in minutes (e.g. /pomodoro 50 10 20), /pomodoro task <text>, or /pomodoro style widget|illustrated',
+          text: 'Usage: /pomodoro focus <what you are working on>, /pomodoro 50 10 20 (minutes), /pomodoro sound on|off, or /pomodoro style widget|illustrated',
         }
       }
       await update($, pomodoro, p => reset({ ...p, minutes }))
@@ -159,18 +197,21 @@ export function registerPomodoro(on: On): void {
     const Svg = e.surface !== 'terminal' && 'Svg' in elements ? elements.Svg : undefined
     const p = await read($, pomodoro)
     const style = await read($, styleAtom)
-    const list = await read($, tasksAtom)
+    const focus = await read($, focusAtom)
+    const isEditing = await read($, editingAtom)
+    const stats = await read($, statsAtom)
+    const isSoundOn = await read($, soundAtom)
     // Reading the theme here redraws the pane when /look switches it.
-    const theme = findTheme(await read($, themeAtom))
-    const palette = pomoPalette(theme)
+    const palette = pomoPalette(findTheme(await read($, themeAtom)))
     await read($, tickAtom)
     const now = await $.clock.now()
     const left = remaining(p, now)
     const total = durationMs(p)
-    const color = PHASE_COLOR[p.phase]
-    const dots = '●'.repeat(Math.min(p.cycle, SET)) + '○'.repeat(Math.max(0, SET - p.cycle))
-    const current = activeTask(list)
+    const today = localDay(now)
+    const week = lastWeek(stats, today)
+    const todaySessions = stats.days[today]?.sessions ?? 0
 
+    // ---- What the buttons do ----
     const toggle = async () => {
       const at = await $.clock.now()
       await update($, pomodoro, q => (q.isRunning ? pause(q, at) : start(q, at)))
@@ -189,102 +230,84 @@ export function registerPomodoro(on: On): void {
       const minutes = nextPreset(q.minutes)
       await update($, pomodoro, r => reset({ ...r, minutes }))
       await refreshStatus($)
-      $.ui.toast(`Pomodoro: ${minutes.focus} / ${minutes.short} / ${minutes.long} minutes`)
+      $.ui.toast(`Pomodoro: ${minutes.focus} min focus, ${minutes.short} min break`)
     }
-    const add = async (text: string) => {
-      const id = `t${(await $.clock.now()).toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
-      await saveTasks($, l => addTask(l, text, id))
+    const sound = async () => {
+      const isOn = !(await read($, soundAtom))
+      await saveSound($, isOn)
+      $.ui.toast(isOn ? '🔔 Chime on' : '🔕 Chime off')
+    }
+    const submitFocus = async (text: string) => {
+      const isEdit = await read($, editingAtom)
+      await saveFocus($, f => setFocus(f, text, isEdit))
+      await update($, editingAtom, () => false)
+    }
+    const finishFocus = async () => {
+      const f = await read($, focusAtom)
+      await saveFocus($, () => NO_FOCUS)
+      $.ui.toast(`✓ ${f.text}${f.pomodoros > 0 ? ` · ${f.pomodoros} 🍅` : ''}`)
     }
 
-    // ---- Task list, shared by every style ----
-    const open = list.items.filter(t => !t.isDone)
-    const done = list.items.filter(t => t.isDone)
-    const doneCount = done.length
-    const tasks = (
-      <Box flexDirection="column" width="100%" paddingX={1} gap={0}>
-        <Box flexDirection="row" justifyContent="space-between">
-          <Text bold>Tasks</Text>
-          {list.items.length > 0 && <Text dimColor size="caption">{`${doneCount}/${list.items.length} done`}</Text>}
-        </Box>
-        <Input
-          key={`task-input-${list.items.length}`}
-          placeholder="Add a task and press Enter"
-          submitLabel="add"
-          value=""
-          onSubmit={value => void add(value)}
-        />
-        {[...open, ...done].map(t => {
-          const isActive = current?.id === t.id
-
-          return (
-            <Box key={`task-row-${t.id}`} flexDirection="row" alignItems="center" gap={1}>
-              <Button key={`task-done-${t.id}`} label={t.isDone ? '☑' : '☐'} plain onPress={() => void saveTasks($, l => toggleTask(l, t.id))} />
-              <Box flexGrow={1}>
-                <Button key={`task-pick-${t.id}`} plain dimColor={t.isDone} onPress={() => void saveTasks($, l => pickTask(l, t.id))}>
-                  <Text bold={isActive} strikethrough={t.isDone}>
-                    {isActive ? `▸ ${t.text}` : t.text}
-                  </Text>
-                </Button>
-              </Box>
-              {t.pomodoros > 0 && <Text dimColor size="caption">{`🍅${t.pomodoros}`}</Text>}
-              <Button key={`task-del-${t.id}`} label="×" plain dimColor onPress={() => void saveTasks($, l => removeTask(l, t.id))} />
-            </Box>
-          )
-        })}
-        {list.items.length === 0 && <Text dimColor size="caption">Each finished focus session adds a 🍅 to the current task.</Text>}
-        {doneCount > 0 && (
-          <Box flexDirection="row" justifyContent="flex-end">
-            <Button key="tasks-clear" label="Clear done" plain dimColor onPress={() => void saveTasks($, clearDone)} />
-          </Box>
-        )}
+    // ---- Controls: one main button, then small ones ----
+    const mainLabel = p.isRunning ? '⏸ Pause' : left < total ? '▶ Resume' : '▶ Start'
+    const controls = (
+      <Box flexDirection="row" gap={1} justifyContent="center" alignItems="center">
+        <Button key="pomo-toggle" label={mainLabel} hotkey="s" variant="primary" onPress={() => void toggle()} />
+        <Button key="pomo-skip" label="⏭" plain hotkey="n" onPress={() => void skip()} />
+        <Button key="pomo-reset" label="↺" plain hotkey="r" onPress={() => void doReset()} />
+        <Button key="pomo-preset" label={`${p.minutes.focus}/${p.minutes.short}`} plain dimColor hotkey="p" onPress={() => void preset()} />
+        <Button key="pomo-sound" label={isSoundOn ? '🔔' : '🔕'} plain dimColor hotkey="m" onPress={() => void sound()} />
       </Box>
     )
 
-    const startLabel = p.isRunning ? 'Pause' : left < total ? 'Resume' : 'Start'
-    const alt = `Pomodoro ${PHASE_NAME[p.phase]}: ${mmss(left)} left${p.isRunning ? '' : ', not running'}${current === undefined ? '' : `, task: ${current.text}`}`
-
-    // Desktop, mobile and the editor draw a card; the terminal keeps the text version.
-    if (Svg !== undefined && style === 'widget') {
-      const nextPhase = p.phase === 'focus' ? 'Break' : 'Focus'
-
-      return (
-        <Box flexDirection="column" gap={1} alignItems="center">
-          <Svg source={pomoWidget(p, now, current?.text, palette)} alt={alt} />
-          <Box flexDirection="row" gap={1} justifyContent="center" alignItems="center">
-            <Button key="pomo-preset" label="⚙" plain hotkey="p" dimColor onPress={() => void preset()} />
-            <Button key="pomo-toggle" label={p.isRunning ? '⏸ Pause' : '▶ ' + startLabel} hotkey="s" variant="primary" onPress={() => void toggle()} />
-            <Button key="pomo-skip" label={nextPhase} hotkey="n" onPress={() => void skip()} />
-            <Button key="pomo-reset" label="↺" plain hotkey="r" dimColor onPress={() => void doReset()} />
+    // ---- What you are working on ----
+    const focusLine =
+      focus.text === '' || isEditing ? (
+        <Box flexDirection="row" alignItems="center" gap={1} width="100%">
+          <Box flexGrow={1}>
+            <Input
+              key={isEditing ? 'focus-input-edit' : 'focus-input'}
+              placeholder="What are you working on?"
+              submitLabel="set"
+              value={isEditing ? focus.text : ''}
+              onSubmit={value => void submitFocus(value)}
+            />
           </Box>
-          <Text dimColor size="caption">
-            {`${p.completed} done · ${p.minutes.focus}/${p.minutes.short}/${p.minutes.long} min`}
-          </Text>
-          {tasks}
+          {isEditing && <Button key="focus-cancel" label="✕" plain dimColor onPress={() => void update($, editingAtom, () => false)} />}
+        </Box>
+      ) : (
+        <Box flexDirection="row" alignItems="center" gap={1} width="100%">
+          <Box flexGrow={1}>
+            <Text bold wrap="truncate-end">{`▸ ${focus.text}`}</Text>
+          </Box>
+          {focus.pomodoros > 0 && <Text dimColor>{`🍅 ${focus.pomodoros}`}</Text>}
+          <Button key="focus-edit" label="✎" plain dimColor onPress={() => void update($, editingAtom, () => true)} />
+          <Button key="focus-done" label="✓" plain onPress={() => void finishFocus()} />
         </Box>
       )
-    }
 
-    const buttons = (
-      <Box flexDirection="row" gap={1} justifyContent="center">
-        <Button key="pomo-toggle" label={startLabel} hotkey="s" variant="primary" onPress={() => void toggle()} />
-        <Button key="pomo-reset" label="Reset" hotkey="r" onPress={() => void doReset()} />
-        <Button key="pomo-skip" label="Skip" hotkey="n" onPress={() => void skip()} />
-      </Box>
-    )
-    const footer = `${p.completed} done · ${p.minutes.focus}/${p.minutes.short}/${p.minutes.long} min · long break after ${SET}`
+    const alt = `Pomodoro ${PHASE_NAME[p.phase]}: ${mmss(left)} left${p.isRunning ? '' : ', not running'}${focus.text === '' ? '' : `, working on ${focus.text}`}`
+    const statsAlt = `Today ${formatMinutes(week.at(-1)?.minutes ?? 0)} of focus in ${todaySessions} sessions`
 
+    // ---- Desktop, mobile and the editor: picture cards ----
     if (Svg !== undefined) {
+      const card = style === 'widget' ? pomoWidget(p, now, focus.text || undefined, palette) : pomoArt(p, now, palette)
+
       return (
         <Box flexDirection="column" gap={1} alignItems="center">
-          <Svg source={pomoArt(p, now, palette)} alt={alt} />
-          {buttons}
-          <Text dimColor size="caption">
-            {footer}
-          </Text>
-          {tasks}
+          <Svg source={card} alt={alt} />
+          {controls}
+          <Box width="100%" paddingX={1}>
+            {focusLine}
+          </Box>
+          <Svg source={statsCard(week, todaySessions, palette)} alt={statsAlt} />
         </Box>
       )
     }
+
+    // ---- The terminal: text ----
+    const color = PHASE_COLOR[p.phase]
+    const dots = '●'.repeat(Math.min(p.cycle, SET)) + '○'.repeat(Math.max(0, SET - p.cycle))
 
     return (
       <Box flexDirection="column" gap={1} paddingX={1} alignItems="center">
@@ -294,22 +317,14 @@ export function registerPomodoro(on: On): void {
         <Text size="title" weight="bold" tabular mono>
           {mmss(left)}
         </Text>
-        {current !== undefined && <Text dimColor>{`▸ ${current.text}`}</Text>}
         <Box width="100%">
-          <Progress
-            label={PHASE_NAME[p.phase]}
-            value={total - left}
-            max={total}
-            valueText={`${mmss(total - left)} of ${mmss(total)}`}
-            color={color}
-          />
+          <Progress label={PHASE_NAME[p.phase]} value={total - left} max={total} valueText={`${mmss(total - left)} of ${mmss(total)}`} color={color} />
         </Box>
         <Text color={color}>{dots}</Text>
-        {buttons}
-        <Text dimColor size="caption">
-          {footer}
-        </Text>
-        {tasks}
+        {controls}
+        {focusLine}
+        <Text dimColor>{`Today ${formatMinutes(week.at(-1)?.minutes ?? 0)} · ${todaySessions} ${todaySessions === 1 ? 'session' : 'sessions'}`}</Text>
+        <Text dimColor mono>{`${sparkline(week)}  ${week.map(b => b.letter).join('')}`}</Text>
       </Box>
     )
   })

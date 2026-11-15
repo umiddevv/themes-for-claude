@@ -73,10 +73,11 @@ test('the terminal shows the text timer; Start pauses into Resume', async ($, on
   await ui.press({ key: 'pomo-toggle' })
 
   expect((await ui.find({ type: 'Text', text: '23:30' }))?.text).toBe('23:30')
-  expect((await ui.find({ type: 'Button', text: 'Resume' }))?.text).toBe('Resume')
+  expect((await ui.find({ type: 'Button', text: '▶ Resume' }))?.text).toBe('▶ Resume')
 
   await ui.press({ key: 'pomo-skip' })
   expect((await ui.find({ type: 'Text', text: /SHORT BREAK/ }))?.text).toContain('SHORT BREAK')
+  expect((await ui.find({ type: 'Text', text: /^Today / }))?.text).toBe('Today 0m · 0 sessions')
   await ui.unmount()
 })
 
@@ -92,7 +93,13 @@ test('desktop and mobile draw the widget card by default', async ($, on) => {
     expect(await card()).toContain('25:00')
     expect(await card()).toContain('🍅')
     expect((await ui.find({ type: 'Button', text: '▶ Start' }))?.text).toBe('▶ Start')
-    expect((await ui.find({ type: 'Button', text: 'Break' }))?.text).toBe('Break')
+    for (const key of ['pomo-skip', 'pomo-reset', 'pomo-preset', 'pomo-sound']) {
+      expect((await ui.findAll({ type: 'Button' })).some(b => b.key === key)).toBe(true)
+    }
+    // Two pictures: the timer card and the stats card.
+    const svgs = await ui.findAll({ type: 'Svg' })
+    expect(svgs.length).toBe(2)
+    expect(String(svgs[1]?.props.source ?? '')).toContain('TODAY')
     await ui.unmount()
   }
 
@@ -110,10 +117,9 @@ test('desktop and mobile draw the widget card by default', async ($, on) => {
   await ui.press({ key: 'pomo-skip' })
   expect(await card()).toContain('RELAX')
   expect(await card()).toContain('☕')
-  expect((await ui.find({ type: 'Button', text: 'Focus' }))?.text).toBe('Focus')
 
   await ui.press({ key: 'pomo-preset' })
-  expect((await ui.find({ type: 'Text', text: /50\/10\/20/ }))?.text).toContain('50/10/20')
+  expect((await ui.find({ type: 'Button', text: '50/10' }))?.text).toBe('50/10')
   expect((await card()).length).toBeLessThan(131_072)
   await ui.unmount()
 })
@@ -134,6 +140,6 @@ test('/pomodoro style illustrated switches to the illustrated card', async ($, o
   const source = String((await ui.find({ type: 'Svg' }))?.props.source ?? '')
   expect(source).toContain('PRESS START')
   expect(source).toContain('class="script"')
-  expect((await ui.find({ type: 'Button', text: 'Start' }))?.text).toBe('Start')
+  expect((await ui.find({ type: 'Button', text: '▶ Start' }))?.text).toBe('▶ Start')
   await ui.unmount()
 })

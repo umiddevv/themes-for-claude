@@ -33,6 +33,13 @@ export function localTime(ms: number): string {
   return formatTime(ms, offsetMinutes)
 }
 
+/** The local calendar day of `ms`, as YYYY-MM-DD. */
+export function localDay(ms: number, offset: number | undefined = offsetMinutes): string {
+  const shift = offset ?? -new Date(ms).getTimezoneOffset()
+
+  return new Date(ms + shift * 60_000).toISOString().slice(0, 10)
+}
+
 async function readOffset($: EngineInterface): Promise<void> {
   try {
     const { exitCode, stdout } = await $.process.run(['date', '+%z'], { timeoutMs: 3000 })

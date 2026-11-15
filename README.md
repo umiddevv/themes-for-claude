@@ -6,10 +6,13 @@ desk tools beside the chat:
 - **Themes you switch in one command.** Four come with it: Aurora night (with an
   animated aurora behind the chat), Paper, Forest moss and Sandstone desert.
   Each one follows your Mac's light and dark mode.
-- **A Pomodoro timer** in a side pane, in the colors of your theme: a widget card with a ring, start / pause,
-  break and focus, three length presets, a chime and a countdown in the status line.
-- **A task list** under the timer. Each finished focus session adds a 🍅 to the
-  task you are on, and your tasks are kept between sessions.
+- **A Pomodoro timer** in a side pane, in the colors of your theme: a widget card
+  with a ring, one big Start / Pause, skip, reset, length presets, a chime you
+  can mute and a countdown in the status line.
+- **One focus line**: "What are you working on?" It shows on the timer card and
+  collects a 🍅 for every focus session you finish.
+- **Today's stats**: focus time and sessions today, and a bar for each day of
+  the week.
 - **A token usage pane**: context window, tokens in and out, cost and rate limits.
 
 ## Install
@@ -40,14 +43,17 @@ then **Add plugin**. New sessions start with it.
 | `/look forest` | Switches to a theme (by id or name) and remembers it |
 | `/look next` | Goes to the next theme in the list |
 | `/pomodoro` | Opens the Pomodoro pane |
-| `/pomodoro task Write the report` | Adds a task |
+| `/pomodoro focus Write the report` | Sets what you are working on |
 | `/pomodoro 50 10 20` | Sets focus, short break and long break minutes |
+| `/pomodoro sound off` | Mutes the chime (`sound on` brings it back) |
 | `/pomodoro style illustrated` | Switches the card to the illustrated style (`style widget` goes back) |
 | `/tokens` | Opens the token usage pane |
 
-In the Pomodoro pane: **▶ Start / ⏸ Pause** (`s`), **Break / Focus** (`n`),
-**⚙** cycles 25/5/15, 50/10/20 and 15/3/10 minutes (`p`), **↺** resets (`r`).
-Click a task to make it the current one, ☐ to tick it off, × to remove it.
+In the Pomodoro pane: **▶ Start / ⏸ Pause** (`s`), **⏭** skips to the next
+phase (`n`), **↺** resets (`r`), **25/5** cycles 25/5, 50/10 and 15/3 minutes
+(`p`), **🔔** mutes the chime (`m`). Type what you are working on in the field
+under the buttons and press Enter; **✎** edits it (its 🍅 count stays) and **✓**
+marks it done. Your focus line, stats and sound choice are kept between sessions.
 
 ### Settings
 
@@ -55,7 +61,7 @@ The plugin's settings have a **Theme** picker and **Open the Pomodoro pane at
 start**. `/look` and the picker work together: the last one you changed wins.
 
 Themes draw in the desktop and mobile apps. The terminal has no themes, but the
-Pomodoro, tasks and tokens panes work there as text.
+Pomodoro and tokens panes work there as text.
 
 ## Make your own theme
 
@@ -122,7 +128,7 @@ Edits reload when you save.
 ```
 themes/            the themes: one file each, plus index.ts (the list)
 themes/scenes/     moving SVG backgrounds
-hooks/             the mod itself (theme engine, Pomodoro, tasks, tokens)
+hooks/             the mod itself (theme engine, Pomodoro, stats, tokens)
 tests/             tests: claude plugin test .
 .claude-plugin/    plugin.json (name, version, settings) and marketplace.json
 ```
