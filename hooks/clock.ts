@@ -29,6 +29,11 @@ export function formatTime(ms: number, offset?: number): string {
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
+/** The Mac's offset east of UTC in minutes, once read; undefined until then. */
+export function localOffset(): number | undefined {
+  return offsetMinutes
+}
+
 export function localTime(ms: number): string {
   return formatTime(ms, offsetMinutes)
 }

@@ -3,6 +3,10 @@
 A mod for Claude Code that restyles the desktop and mobile apps and adds a few
 desk tools beside the chat:
 
+- **A Today pane**: what Claude cost today and this week across all your
+  sessions, your context window and plan limits with reset times, and your
+  Google calendars as a week strip and a day of meeting cards with **Join**
+  links (Meet, Zoom, Teams, Webex).
 - **Themes you switch in one command.** Five come with it: Aurora night (with an
   animated aurora behind the chat), Glyph sea (a whale, a manta, a jellyfish and
   fish made of code characters swimming behind the chat), Paper, Forest moss and
@@ -15,6 +19,9 @@ desk tools beside the chat:
   toward it.
 - **Today's stats**: focus time and sessions today, time per tag, and a bar for
   each day of the week.
+- **Needs you**: one pane that looks through your connected apps (Gmail, Slack,
+  Google Calendar, Upwork) and your other Claude sessions, and shows only what
+  needs you, ranked 🔴 now or 🟠 today, in your theme's colors.
 - **A token usage pane**: context window, tokens in and out, cost and rate limits.
 
 ## Install
@@ -50,6 +57,9 @@ then **Add plugin**. New sessions start with it.
 | `/pomodoro 50 10 20` | Sets focus, short break and long break minutes |
 | `/pomodoro sound off` | Mutes the chime (`sound on` brings it back) |
 | `/pomodoro style illustrated` | Switches the card to the illustrated style (`style widget` goes back) |
+| `/today` | Opens the Today pane: usage, limits and your calendar |
+| `/needs` | Opens the Needs you pane (and turns it on) |
+| `/needs check` | Looks through your apps now |
 | `/tokens` | Opens the token usage pane |
 
 In the Pomodoro pane: **▶ Start / ⏸ Pause** (`s`), **⏭** skips to the next
@@ -58,10 +68,57 @@ phase (`n`), **↺** resets (`r`), **25/5** cycles 25/5, 50/10 and 15/3 minutes
 sessions with it (tap it again to clear it); **✎** lets you add tags (up to 8)
 and remove them. Your tags, stats and sound choice are kept between sessions.
 
+### Today
+
+The top card shows what Claude cost today and this week, added up across every
+Claude Code session on this Mac, how full the context window is, and each plan
+limit (5-hour, weekly, weekly per model) with when it resets. `/tokens` opens
+the token breakdown for the session you're in.
+
+Below it, your Google calendars: a week strip with a dot per meeting, then the
+day's meetings as cards. The next one gets an "in 20 min" badge and ones that
+are over fade out. **Join** beside a card opens its meeting (Meet, Zoom, Teams
+or Webex); **↗** opens an event without a meeting in Google Calendar. **‹ ›**
+move through the days. It refreshes every 5 minutes (**↻** refreshes now).
+
+The first time, it asks which calendars to show: your own ones are picked,
+holidays and shared family calendars aren't. Pick your work ones and press
+**Done**; **⚙** brings the choice back.
+
+It needs the **Google Calendar** connector: click **+** next to the prompt,
+then **Connectors**. The calendar is read as data, with no AI model, so this
+pane costs no tokens. It reads only; it never changes your calendar.
+
+### Needs you
+
+Needs you is off on a new install: open `/needs` once to turn it on.
+
+While Claude is open, the pane checks your apps every 15 minutes (**↻ Check now**
+checks at once). A small, cheap Claude model sorts what it finds:
+
+- 🔴 **Now**: a real person waiting on you (a direct email, a DM or @mention, a
+  client message), something due today, or a meeting within 30 minutes.
+- 🟠 **Today**: questions, review requests, invites waiting for an answer, and
+  Claude sessions waiting for your approval or your answer.
+- **Hidden**: newsletters, promos, automated notifications and threads you
+  already answered. The pane says how many it hid.
+
+It shows at most 7 items. **↗ Open** opens one in its app, **✓ Done** clears
+it and **⏰ 1h** snoozes it for an hour. **⚙** takes the names of people whose
+messages always come first. One session checks per round and every session
+shares the result, so more open sessions don't cost more. A new 🔴 item sends
+one desktop notification.
+
+It reads only the apps connected to Claude: add Gmail and Slack under
+**Connectors** in the Claude app. An app that isn't connected is skipped, and
+one that can't be read is named under the list. The ranking model reads what
+those apps return, the same as when you ask Claude about your mail.
+
 ### Settings
 
-The plugin's settings have a **Theme** picker and **Open the Pomodoro pane at
-start**. `/look` and the picker work together: the last one you changed wins.
+The plugin's settings have a **Theme** picker, **Open the Today pane at
+start**, **Open the Pomodoro pane at start**, **Open the Needs you pane at
+start** and the **Needs you check interval** in minutes. `/look` and the picker work together: the last one you changed wins.
 
 Themes draw in the desktop and mobile apps. The terminal has no themes, but the
 Pomodoro and tokens panes work there as text.
@@ -131,7 +188,7 @@ Edits reload when you save.
 ```
 themes/            the themes: one file each, plus index.ts (the list)
 themes/scenes/     moving SVG backgrounds
-hooks/             the mod itself (theme engine, Pomodoro, stats, tokens)
+hooks/             the mod itself (theme engine, Today, Pomodoro, stats, Needs you, tokens)
 tests/             tests: claude plugin test .
 .claude-plugin/    plugin.json (name, version, settings) and marketplace.json
 ```

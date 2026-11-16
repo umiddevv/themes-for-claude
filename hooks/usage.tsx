@@ -2,6 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { Color, EngineInterface, On, SessionRateLimit } from 'claude-code'
 
 import type { Totals } from '../types'
+import { reportTurn } from './needs'
+import { recordCost } from './today'
 import { localTime } from './clock'
 
 export const PANE = 'tokens-pane'
@@ -83,6 +85,10 @@ export function registerUsage(on: On): void {
         lastTurn: isMain ? turn : t.lastTurn,
       }))
     }
+    // The Needs you pane learns whether this session now waits on the person.
+    await reportTurn($, e)
+    // The Today pane adds up what every session cost today.
+    await recordCost($).catch(() => undefined)
 
     return done
   })

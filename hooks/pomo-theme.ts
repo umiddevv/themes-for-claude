@@ -7,7 +7,14 @@ import type { Phase } from '../types'
 // phase colors in `pomodoro`.
 
 export type PomoMode = { card: string; edge: string; track: string; ink: string; soft: string; dot: string }
-export type PomoPalette = { light: PomoMode; dark: PomoMode; phase: Record<Phase, [hot: string, deep: string]> }
+export type PomoPalette = {
+  light: PomoMode
+  dark: PomoMode
+  phase: Record<Phase, [hot: string, deep: string]>
+  /** The Needs you pane's urgency colors, from the theme's danger and warning. */
+  alert: { now: string; today: string }
+  accent: string
+}
 
 const HEX = /^#[0-9a-f]{6}$/i
 
@@ -29,6 +36,8 @@ export const CLASSIC: PomoPalette = {
   light: { card: '#ffffff', edge: '#e6e6ea', track: '#ececf0', ink: '#111114', soft: '#8a8a93', dot: '#c9c9d0' },
   dark: { card: '#050506', edge: '#1c1c20', track: '#242428', ink: '#ffffff', soft: '#9a9aa3', dot: '#3a3a40' },
   phase: { focus: ['#ff8a1f', '#d9302a'], short: ['#47a8ff', '#1f5fd1'], long: ['#b48cff', '#6a45d8'] },
+  alert: { now: '#e5484d', today: '#e0a030' },
+  accent: '#ff8a1f',
 }
 
 function mode(m: ThemeMode, isDark: boolean): PomoMode {
@@ -61,5 +70,7 @@ export function pomoPalette(t: Theme | undefined): PomoPalette {
       short: ramp(t.pomodoro?.short ?? t.colors.success),
       long: ramp(t.pomodoro?.long ?? t.colors.special),
     },
+    alert: { now: t.colors.danger, today: t.colors.warning },
+    accent: t.colors.accent,
   }
 }
